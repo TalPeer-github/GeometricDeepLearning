@@ -52,7 +52,7 @@ def visualize_graph(graph):
     node_labels = {i: f"\n\n{str(node_features[i].tolist())}" for i in range(len(node_features))}
     nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=8)
 
-    plt.suptitle(f'Graph\n(Label = {graph.y.numpy().item()})', fontweight='bold')
+    plt.suptitle(f'Label = {graph.y.numpy().item()}', fontweight='bold')
     plt.tight_layout()
     plt.show()
 
