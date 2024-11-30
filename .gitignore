@@ -1,0 +1,22 @@
+
+__pycache__/
+
+## Virtual environments
+#venv/
+#env/
+
+# IDEs and editors
+config/
+results/images
+docs/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Model checkpoints
+*.pth
+*.pt
+
+src/exp.ipynb
+src/mini_exp.py
+
