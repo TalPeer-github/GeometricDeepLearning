@@ -4,22 +4,28 @@ from torch_geometric.loader import DataLoader
 from src.models.GCN import *
 from src.models.SAGE import *
 from src.models.GAT import *
+from src.models.QMPNN import *
+from src.models.EGC import *
+from src.models.CHEV import *
 from utils.data_utils import load_data, loader_details
 import config
-from utils.viz import plot_learning_curve, visualize_graph
+from utils.viz import *
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
-args = config.args
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def explore_data(graphs_data, split='train', n=10):
+def explore_data(graphs_data, split='train', n=30):
     for i in range(len(graphs_data)):
         if i % n == 0:
             visualize_graph(graphs_data[i])
+            # visualize_graph_3d(graphs_data[i])
+            # visualize_graph_shell(graphs_data[i])
 
 
-def train(model, train_loader, optimizer, criterion):
+def _train(model, train_loader, optimizer, criterion):
     """
      Iterate in batches over the training dataset.
      Perform a single forward pass
@@ -31,13 +37,15 @@ def train(model, train_loader, optimizer, criterion):
     """
     model.train()
     for data in train_loader:
+        data = data.to(device)
+        optimizer.zero_grad()
         out = model(data.x, data.edge_index, data.batch)
         loss = criterion(out, data.y)
         loss.backward()
         optimizer.step()
-        optimizer.zero_grad()
 
 
+@torch.no_grad()
 def test(model, loader):
     """
     Iterate in batches over the training/test dataset.
@@ -50,13 +58,28 @@ def test(model, loader):
     model.eval()
     correct = 0
     for data in loader:
-        out = model(data.x, data.edge_index, data.batch)
-        pred = out.argmax(dim=1)
+        data = data.to(device)
+        logits = model(data.x, data.edge_index, data.batch)
+        pred = logits.argmax(dim=1)
         correct += int((pred == data.y).sum())
     return correct / len(loader.dataset)
 
 
-def start_experiments():
+def qmpnn_train(train_loader):
+    model.train()
+    for batch in train_loader:
+        batch = batch.to(device)
+        optimizer.zero_grad()
+        output = model(batch)
+        loss = criterion(output, batch.y)
+        loss.backward()
+        optimizer.step()
+
+
+def run_experiment():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    args = config.args
     explore_graphs = False
 
     splits = ['train', 'val', 'test']
@@ -68,41 +91,49 @@ def start_experiments():
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
-    loader_details(train_loader, split='train')
-    loader_details(val_loader, split='val')
     if explore_graphs:
         explore_data(train_dataset)
-        explore_data(val_dataset)
+        # loader_details(train_loader, split='train')
+        # loader_details(val_loader, split='val')
 
     if args.model_type == "GCN" or args.model_type is None:
         model = GCN(num_node_features=args.num_node_features, hidden_channels=args.hidden_channels,
-                    num_classes=args.num_classes)
+                    num_classes=args.num_classes).to(device)
     elif args.model_type == "SAGE":
         model = GraphSAGE(num_node_features=args.num_node_features, hidden_channels=args.hidden_channels,
                           num_classes=args.num_classes)
     elif args.model_type == "GAT":
         model = GAT(num_node_features=args.num_node_features, hidden_channels=args.hidden_channels,
                     num_classes=args.num_classes)
+    elif args.model_type == "QMPNN":
+        model = QMPNN(node_input_dim=args.num_node_features, edge_input_dim=args.num_edge_attr,
+                      hidden_dim=args.hidden_channels, num_classes=args.num_classes)
+    elif args.model_type == "EGC":
+        model = EGCNet(num_node_features=args.num_node_features, hidden_channels=args.hidden_channels,
+                       num_classes=args.num_classes)
+    elif args.model_type == "CHEV":
+        model = ChebNet(num_node_features=args.num_node_features, hidden_channels=args.hidden_channels,
+                        num_classes=args.num_classes)
     else:
         model = GCN(num_node_features=args.num_node_features, hidden_channels=args.hidden_channels,
                     num_classes=args.num_classes)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
     criterion = torch.nn.CrossEntropyLoss()
-
     train_accuracies, val_accuracies = [], []
 
     for epoch in range(1, args.num_epochs + 1):
-        train(model, train_loader, optimizer, criterion)
-        train_acc = test(model, train_loader)
-        val_acc = test(model, val_loader)
+        if not args.model_type == "QMPNN":
+            _train(model, train_loader, optimizer, criterion)
+        else:
+            qmpnn_train(train_loader)
+        train_acc = round(test(model, train_loader), 6)
+        val_acc = round(test(model, val_loader), 6)
 
         train_accuracies.append(train_acc)
         val_accuracies.append(val_acc)
+        if epoch % 20 == 0:
+            print(f"Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Val Acc: {val_acc:.4f}")
 
-        print(f"Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Val Acc: {val_acc:.4f}")
-
-    plot_learning_curve(train_accuracies, val_accuracies)
-    # if np.mean(val_accuracies) > best_acc:
-    #     model_path = 'path_to_save_model.pth'
-    #     torch.save(model.state_dict(), model_path)
+    # plot_learning_curve(train_accuracies, val_accuracies)
+    return train_accuracies, val_accuracies

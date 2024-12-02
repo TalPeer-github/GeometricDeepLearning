@@ -16,7 +16,6 @@ class GCN(torch.nn.Module):
         super(GCN, self).__init__()
         torch.manual_seed(seed=seed)
         self.p = p
-
         self.conv1 = GCNConv(num_node_features, hidden_channels)
         self.conv2 = GCNConv(hidden_channels, hidden_channels)
         self.conv3 = GCNConv(hidden_channels, hidden_channels)
@@ -43,4 +42,3 @@ class GCN(torch.nn.Module):
         x = self.lin(x)
 
         return x
-

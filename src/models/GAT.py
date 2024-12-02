@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch.nn import Linear
 from torch_geometric.nn import global_mean_pool
 
+
 class GAT(torch.nn.Module):
     """
     GAT model using attention mechanisms to selectively aggregate neighbor features.
