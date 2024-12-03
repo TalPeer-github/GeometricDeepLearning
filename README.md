@@ -10,5 +10,4 @@
 ### Date
 **November 2024**
 
-
-![](img/g_class2.png)
+![](results/img/ChebNet_val_acc_08488_k2_nlin2_nconv3_maxPooling.png)
