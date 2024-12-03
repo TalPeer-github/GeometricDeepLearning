@@ -276,48 +276,80 @@ def get_file_path(split='train'):
     return file_path
 
 
-def plot_learning_curve(train_accuracies, val_accuracies, model_type=args.model_type, num_epochs=args.num_epochs,
+def plot_learning_curve(train_accuracies, val_accuracies, train_losses, val_losses, model_type=args.model_type,
+                        num_epochs=args.num_epochs,
                         batch_size=args.batch_size, lr=args.lr, hidden_dim=args.hidden_channels,
-                        plot_losses=False, save_fig=True):
+                        plot_losses=True, save_fig=True):
+    args = config.args
     epochs = range(1, num_epochs + 1)
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(16, 5))
 
     if plot_losses:
         n_rows, n_cols, index_pos = 1, 2, 1
     else:
         n_rows, n_cols, index_pos = 1, 1, 1
+    val_color = "#C55300" #"#820000"  # "#8B322C"
+    train_color = "#0A516D" #"#102C57"  # "#102C57"
     plt.subplot(n_rows, n_cols, index_pos)
-    plt.plot(epochs, train_accuracies, label='Train Accuracy', color="#102C57", linewidth=2)
-    plt.scatter(epochs, train_accuracies, color="#102C57", linewidth=0.1,alpha=0.5)
-    plt.plot(epochs, val_accuracies, label='Validation Accuracy', color="#8B322C", linewidth=2)
-    plt.scatter(epochs, val_accuracies, color="#8B322C", linewidth=0.1, alpha=0.5)
+    plt.plot(epochs, train_accuracies, label='Train Accuracy', color=train_color, linewidth=2, alpha=1.)
+    plt.scatter(epochs[::5], train_accuracies[::5], color=train_color, linewidth=0.1, alpha=0.5)
+    plt.plot(epochs, val_accuracies, label='Validation Accuracy', color=val_color, linewidth=2, alpha=1.)
+    plt.scatter(epochs[::5], val_accuracies[::5], color=val_color, linewidth=0.1, alpha=0.5)
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
-    plt.title('Accuracy Over Epochs')
+    plt.title(f'\n\n\n')  # Accuracy Over Epochs', fontweight='bold')
     plt.legend()
 
     val_mean_acc = sum(val_accuracies) / len(val_accuracies)
     train_mean_acc = sum(train_accuracies) / len(train_accuracies)
-    param_text = (
-        f"Model: {model_type}\n\nNum Epochs = {num_epochs}\nBatch Size = {batch_size}\nLR = {lr}\nHidden Dim = {hidden_dim}"
-        f"\n\nTrain Mean Accuracy = {train_mean_acc:.4f}\nValidation Mean Accuracy = {val_mean_acc:.4f}")
-    plt.gca().text(0.125, 0.15, param_text, transform=plt.gca().transAxes, fontsize=8, verticalalignment='center',
-                   horizontalalignment='center', bbox=dict(facecolor='#FEFAF6', alpha=0.95, edgecolor='#102C57',
-                                                           boxstyle='round,pad=0.5'))
 
     if plot_losses:
-        plt.subplot(1, 2, 2)
-        plt.plot(epochs, [0.0] * num_epochs, label='Train Loss')
+        plt.subplot(n_rows, n_cols, 2)
+        plt.plot(epochs, train_losses, label='Train Loss', color=train_color, linewidth=2, alpha=1.)
+        plt.plot(epochs, val_losses, label='Validation Loss', color=val_color, linewidth=2, alpha=1.)
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
-        plt.title('Training Loss Over Epochs')
+        plt.title(f'\n\n\n')
+
         plt.legend()
 
+    if model_type == "ChebNet":
+        param_text = (f"{args.num_conv_layers} Conv layers | {args.num_linear_layers} Linear layers "
+                      f"| '{args.pooling_type}' Pooling | Order of Chebyshev Polynomials = {args.k_order}")
+    else:
+        param_text = (
+            f"Model: {model_type}\n\nNum Epochs = {num_epochs}\nBatch Size = {batch_size}\nLR = {lr}\nHidden Dim = {hidden_dim}"
+            f"\n\nTrain Mean Accuracy = {train_mean_acc:.4f}\nValidation Mean Accuracy = {val_mean_acc:.4f}")
+
+    plt.gcf().text(
+        0.5, 0.975,
+        args.model_type,
+        fontsize=15,
+        verticalalignment='top',
+        horizontalalignment='center',
+        fontweight='bold',
+        bbox=dict(facecolor='#FEFAF6', alpha=0.95, edgecolor=train_color, boxstyle='round,pad=0.3')
+    )
+    plt.gcf().text(
+        0.5, 0.90,
+        param_text,
+        fontsize=10,
+        verticalalignment='top',
+        horizontalalignment='center',
+        bbox=dict(facecolor='#FEFAF6', alpha=0.95, edgecolor=train_color, boxstyle='round,pad=0.5')
+    )
+    plt.legend()
+
     plt.tight_layout()
+
     if save_fig:
         file_name = f"val_acc_{val_mean_acc:.4f}".replace('.', '')
-        img_path = f'../results/images/{model_type}_{file_name}_lr{args.lr}_batch{args.batch_size}_hc{args.hidden_channels}_.png'
+        if model_type == "ChebNet":
+            img_path = f'../results/images/{model_type}_{file_name}_k{args.k_order}_nlin{args.num_linear_layers}_nconv{args.num_conv_layers}_{args.pooling_type}Pooling.png'
+        else:
+            img_path = f'../results/images/{model_type}_{file_name}_lr{args.lr}_batch{args.batch_size}_hc{args.hidden_channels}.png'
         plt.savefig(img_path)
+
     plt.show()
 
 

@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
@@ -6,7 +7,7 @@ from src.models.SAGE import *
 from src.models.GAT import *
 from src.models.QMPNN import *
 from src.models.EGC import *
-from src.models.CHEV import *
+from src.models.cheb_net import *
 from utils.data_utils import load_data, loader_details
 import config
 from utils.viz import *
@@ -46,7 +47,7 @@ def _train(model, train_loader, optimizer, criterion):
 
 
 @torch.no_grad()
-def test(model, loader):
+def test(model, loader, criterion):
     """
     Iterate in batches over the training/test dataset.
     Use the class with the highest probability.
@@ -56,13 +57,22 @@ def test(model, loader):
     :return:
     """
     model.eval()
+    model.eval()
+    total_loss = 0.0
     correct = 0
-    for data in loader:
-        data = data.to(device)
-        logits = model(data.x, data.edge_index, data.batch)
-        pred = logits.argmax(dim=1)
-        correct += int((pred == data.y).sum())
-    return correct / len(loader.dataset)
+
+    with torch.no_grad():
+        for data in loader:
+            data = data.to(device)
+            logits = model(data.x, data.edge_index, data.batch)
+            loss = criterion(logits, data.y)
+            total_loss += loss.item()
+            pred = logits.argmax(dim=1)
+            correct += int((pred == data.y).sum())
+
+    avg_loss = total_loss / len(loader)
+    accuracy = correct / len(loader.dataset)
+    return avg_loss, accuracy
 
 
 def qmpnn_train(train_loader):
@@ -77,10 +87,11 @@ def qmpnn_train(train_loader):
 
 
 def run_experiment():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     args = config.args
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     explore_graphs = False
+    follow_training = False
 
     splits = ['train', 'val', 'test']
     train_dataset = load_data('train')
@@ -111,29 +122,40 @@ def run_experiment():
     elif args.model_type == "EGC":
         model = EGCNet(num_node_features=args.num_node_features, hidden_channels=args.hidden_channels,
                        num_classes=args.num_classes)
-    elif args.model_type == "CHEV":
+    elif args.model_type == "ChebNet":
         model = ChebNet(num_node_features=args.num_node_features, hidden_channels=args.hidden_channels,
-                        num_classes=args.num_classes)
+                        num_classes=args.num_classes, num_lin=args.num_linear_layers, num_conv=args.num_conv_layers,
+                        k_order=args.k_order, pooling_type=args.pooling_type)
     else:
         model = GCN(num_node_features=args.num_node_features, hidden_channels=args.hidden_channels,
                     num_classes=args.num_classes)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
     criterion = torch.nn.CrossEntropyLoss()
+
     train_accuracies, val_accuracies = [], []
+    train_losses, val_losses = [], []
 
     for epoch in range(1, args.num_epochs + 1):
-        if not args.model_type == "QMPNN":
-            _train(model, train_loader, optimizer, criterion)
-        else:
-            qmpnn_train(train_loader)
-        train_acc = round(test(model, train_loader), 6)
-        val_acc = round(test(model, val_loader), 6)
+        _train(model, train_loader, optimizer, criterion)
+
+        train_loss, train_acc = test(model, train_loader, criterion)
+        val_loss, val_acc = test(model, val_loader, criterion)
 
         train_accuracies.append(train_acc)
         val_accuracies.append(val_acc)
-        if epoch % 20 == 0:
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+
+        if (val_acc < 0.7 and epoch >= 75) or follow_training:
+            if not follow_training:
+                model.print_params()
+            follow_training = True
             print(f"Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Val Acc: {val_acc:.4f}")
 
-    # plot_learning_curve(train_accuracies, val_accuracies)
-    return train_accuracies, val_accuracies
+    if (follow_training
+            or (np.max(val_accuracies) >= 0.9
+                or np.mean(val_accuracies) < 0.7
+                or np.mean(np.abs(np.array(train_accuracies) - np.array(val_accuracies))) >= 0.15)):
+        plot_learning_curve(train_accuracies, val_accuracies, train_losses, val_losses)
+    return train_losses, val_losses, train_accuracies, val_accuracies

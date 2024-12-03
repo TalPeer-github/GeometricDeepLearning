@@ -79,7 +79,7 @@ class OrbitalAwareGCN(EnergyAwareGCN):
 class ChargeAwareGCN(OrbitalAwareGCN):
     def __init__(self, num_node_features, hidden_channels, num_classes, p=0.4, seed=42):
         super(ChargeAwareGCN, self).__init__(num_node_features, hidden_channels, num_classes, p, seed)
-        self.electronegativity_factor = torch.nn.Parameter(torch.Tensor([1.0]))  # Electronegativity influence
+        self.electronegativity_factor = torch.nn.Parameter(torch.Tensor([1.0]))  # electronegativity influence
 
     def forward(self, x, edge_index, batch, electronegativity=None):
         if electronegativity is not None:
