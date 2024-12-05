@@ -11,4 +11,4 @@
 **November 2024**
 
 
-![](img/g_class2.png)
+![](results/ChebNet_val_acc_08814_k2_nlin1_nconv4_maxPooling.png)
