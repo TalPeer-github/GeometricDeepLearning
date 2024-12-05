@@ -147,7 +147,7 @@ def run_experiment():
         train_losses.append(train_loss)
         val_losses.append(val_loss)
 
-        if (val_acc < 0.7 and epoch >= 75) or follow_training:
+        if (val_acc < 0.7 and epoch >= 40) or follow_training:
             if not follow_training:
                 model.print_params()
             follow_training = True

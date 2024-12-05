@@ -20,7 +20,7 @@ def parse_args(n_linear, n_conv, pool, k_order):
     batch_size = 32
     hidden_channels = 48
     lr = 5e-3
-    num_epochs = 150
+    num_epochs = 70  # 150
     wd = 3e-3
 
     parser = ArgumentParser(description="Graph Classification Task")
@@ -46,10 +46,13 @@ def get_stats(array):
     return np.max(array), np.argmax(array), np.mean(array), np.var(array), np.min(array[::-1]), np.argmin(array[::-1])
 
 
+# ChebNet,6,1,2,max
+
+
 if __name__ == "__main__":
-    exp_k_ords = [2, 3, 4]
-    exp_num_lins = [1, 2, 3]
-    exp_num_convs = [2, 3, 4, 5, 6]
+    exp_k_ords = [2, 3]  # [2, 3, 4]
+    exp_num_lins = [1]  # [1, 2, 3]
+    exp_num_convs = [3, 5, 7, 8, 9, 12]  # [2, 3, 4, 5, 6]
     exp_poolings = ["add", "mean", "max"]
 
     results = []
@@ -59,9 +62,9 @@ if __name__ == "__main__":
     exp_idx = 0
 
     for n_linear in exp_num_lins[:demo_run]:
-        for n_conv in exp_num_convs[:demo_run]:
-            for k_order in exp_k_ords[:demo_run]:
-                for pool in exp_poolings[:demo_run]:
+        for k_order in exp_k_ords[:demo_run]:
+            for pool in exp_poolings[:demo_run]:
+                for n_conv in exp_num_convs[:demo_run]:
                     args = parse_args(n_linear, n_conv, pool, k_order)
                     args.model_type = "ChebNet"
                     args.batch_size = 32
@@ -132,5 +135,5 @@ if __name__ == "__main__":
                     sleep(1)
 
     df_results = pd.DataFrame(results)
-    df_results.to_csv('../results/experiments_results2_ChebNet.csv', index=False)
-    print("Experiments results saved to results/experiments_results2_ChebNet.csv")
+    df_results.to_csv('../results/experiments_fewerEpochs_results_ChebNet.csv', index=False)
+    print("Experiments results saved to results/experiments_fewerEpochs_results_ChebNet.csv")
