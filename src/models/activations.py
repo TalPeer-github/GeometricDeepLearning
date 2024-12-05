@@ -10,8 +10,6 @@ def repu(x: torch.Tensor, p: float) -> torch.Tensor:
     :return torch.Tensor: Output tensor after applying RePU.
     """
     assert p >= 1
-    if p <= 1:
-        raise ValueError("The power parameter p must be greater than 1.")
     return F.relu(x) ** p
 
 
