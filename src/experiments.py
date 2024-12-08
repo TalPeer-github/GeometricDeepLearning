@@ -57,7 +57,6 @@ def test(model, loader, criterion):
     :return:
     """
     model.eval()
-    model.eval()
     total_loss = 0.0
     correct = 0
 
@@ -75,32 +74,25 @@ def test(model, loader, criterion):
     return avg_loss, accuracy
 
 
-def qmpnn_train(train_loader):
-    model.train()
-    for batch in train_loader:
-        batch = batch.to(device)
-        optimizer.zero_grad()
-        output = model(batch)
-        loss = criterion(output, batch.y)
-        loss.backward()
-        optimizer.step()
-
-
 def run_experiment():
     args = config.args
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     explore_graphs = False
     follow_training = False
+    create_test = True
 
     splits = ['train', 'val', 'test']
     train_dataset = load_data('train')
     val_dataset = load_data('val')
-    test_dataset = load_data('test')
+    if create_test:
+        train_dataset, test_dataset = train_dataset[:125], train_dataset[125:]
+    else:
+        test_dataset = load_data('test')
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size // 2, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size // 2, shuffle=False)
 
     if explore_graphs:
         explore_data(train_dataset)
@@ -116,9 +108,6 @@ def run_experiment():
     elif args.model_type == "GAT":
         model = GAT(num_node_features=args.num_node_features, hidden_channels=args.hidden_channels,
                     num_classes=args.num_classes)
-    elif args.model_type == "QMPNN":
-        model = QMPNN(node_input_dim=args.num_node_features, edge_input_dim=args.num_edge_attr,
-                      hidden_dim=args.hidden_channels, num_classes=args.num_classes)
     elif args.model_type == "EGC":
         model = EGCNet(num_node_features=args.num_node_features, hidden_channels=args.hidden_channels,
                        num_classes=args.num_classes)
@@ -158,4 +147,8 @@ def run_experiment():
                 or np.mean(val_accuracies) < 0.7
                 or np.mean(np.abs(np.array(train_accuracies) - np.array(val_accuracies))) >= 0.15)):
         plot_learning_curve(train_accuracies, val_accuracies, train_losses, val_losses)
-    return train_losses, val_losses, train_accuracies, val_accuracies
+
+    plot_learning_curve(train_accuracies, val_accuracies, train_losses, val_losses)
+    test_loss, test_acc = test(model, test_loader, criterion)
+
+    return train_losses, val_losses, train_accuracies, val_accuracies, test_loss, test_acc

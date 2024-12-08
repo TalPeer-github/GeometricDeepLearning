@@ -41,17 +41,22 @@ def get_stats(array):
     return np.max(array), np.argmax(array), np.mean(array), np.var(array), np.min(array[::-1]), np.argmin(array[::-1])
 
 
+# model,num_conv_layers,num_linear_layers,polynomial_k_order,pooling_method,num_epochs,batch_size,hidden_channels,lr,weight_decay
+# ChebNet,5,1,2,max,90,24,24,0.003,0.005 -> Test Loss: 0.5095, Test Acc: 0.6667
+# ChebNet,11,1,2,add,90,32,48,0.003,0.005 -> Test Loss: 0.5207, Test Acc: 0.8667
+# ChebNet,13,1,2,add,90,32,48,0.003,0.005 -> Test Loss: 0.5078, Test Acc: 0.8667
+
 if __name__ == "__main__":
     exp_models = ["ChebNet"]  # ["SAGE", "GCN", "GAT", "ChebNet", "EGC", "GIN"]
-    exp_batch_sizes = [24, 32, 48, 64]
-    exp_hidden_channels = [24, 48]  # [24, 48, 64]
+    exp_batch_sizes = [24]  # [24, 48]  # [32,48,64]
+    exp_hidden_channels = [32]  # [16, 32, 64]  # [16, 32,48, 64]  # [24, 48]  # [24, 48, 64]
     exp_lrs = [3e-3]  # , 1e-3]  # [5e-4, 1e-3, 5e-3, 1e-2]
     exp_wds = [5e-3]  # [3e-3, 5e-5]
     exp_epochs = [90]  # , 150]  # [125, 200]
     k_ords = [2]  # [2, 3, 4]
     num_lins = [1]  # [1, 2]
-    num_convs = [3, 5, 7, 9, 11]  # [2, 3, 4, 5]
-    poolings = ["add", "mean", "max"]
+    num_convs = [13]  # [3, 5, 7, 9, 11, 13]  # [2, 3, 4, 5]
+    poolings = ["add"]  # , "max"]  # ["add", "mean", "max"]
     results = []
     demo_run = None
 
@@ -91,7 +96,7 @@ if __name__ == "__main__":
                   f"\n\tnum_epochs = {args.num_epochs}\n\tbatch_size = {args.batch_size}"
                   f"\n\tlearning_rate = {args.lr}\n\tweight_decay = {args.wd}\n\n")
 
-        train_loss, val_loss, train_acc, val_acc = run_experiment()
+        train_loss, val_loss, train_acc, val_acc, test_loss, test_acc = run_experiment()
         (train_max_acc, train_max_acc_epoch, train_mean_acc, train_acc_var,
          train_min_acc, train_min_acc_epoch) = get_stats(train_acc)
         (val_max_acc, val_max_acc_epoch, val_mean_acc, val_acc_var,
@@ -108,6 +113,8 @@ if __name__ == "__main__":
             'hidden_channels': args.hidden_channels,
             'lr': args.lr,
             'weight_decay': args.wd,
+            'test_loss': test_loss,
+            'test_accuracy': test_acc,
             'mean_train_accuracy': train_mean_acc,
             'var_train_accuracy': train_acc_var,
             'max_train_accuracy': train_max_acc,
@@ -128,6 +135,7 @@ if __name__ == "__main__":
             'val_loss_array': val_loss
         })
         if exp_idx % 15 == 0 or exp_idx <= 5:
+            print(f"Test Loss: {test_loss:.4f} | Test Acc: {test_acc:.4f}")
             print(
                 f"-> Train mean loss = {np.mean(train_loss):.4f} | Validation mean loss = {np.mean(val_loss):.4f}")
             print(
@@ -136,5 +144,5 @@ if __name__ == "__main__":
         sleep(1)
 
     df_results = pd.DataFrame(results)
-    df_results.to_csv('../results/experimentsFull_ChebNet_results.csv', index=False)
-    print("Experiments results saved to results/experimentsFull_ChebNet_results.csv")
+    df_results.to_csv('../results/FinalChebConvResults2.csv', index=False)
+    print("Experiments results saved to results/FinalChebConvResults2.csv")

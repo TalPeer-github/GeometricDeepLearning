@@ -2,9 +2,11 @@ import torch
 from src.datasets_class.custom_graph_dataset import CustomGraphDataset
 
 
-def load_data(split: str, path="../data/", prints=False):
+def load_data(split: str, path="../data/", prints=False, create_test=False):
     file_path = f"{path}{split.strip()}.pt"
     dataset = torch.load(file_path)
+    if create_test:
+        train_dataset, test_dataset = dataset[:135], dataset[135:]
     if prints:
         if isinstance(dataset, dict):
             print("Keys:", dataset.keys())
