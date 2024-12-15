@@ -1,12 +1,18 @@
 import torch
 from src.datasets_class.custom_graph_dataset import CustomGraphDataset
+from sklearn import metrics
+from sklearn.metrics import confusion_matrix, roc_curve, auc, roc_auc_score
+import os
+import csv
+import warnings
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
-def load_data(split: str, path="../data/", prints=False, create_test=False):
+def load_data(split: str, path="./data/", prints=False):
     file_path = f"{path}{split.strip()}.pt"
     dataset = torch.load(file_path)
-    if create_test:
-        train_dataset, test_dataset = dataset[:135], dataset[135:]
+
     if prints:
         if isinstance(dataset, dict):
             print("Keys:", dataset.keys())
@@ -96,3 +102,27 @@ def loader_details(data_loader, split: str):
         print(f'Number of graphs in the current batch: {data.num_graphs}')
         print(data)
         print()
+
+
+def evaluate_metrics(y_true, y_pred, scores, output_file='../results/eval_results.csv', exp_args=None):
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    fpr, tpr, thresholds = roc_curve(y_true, scores, pos_label=1)
+    auc_score = auc(fpr, tpr)
+    exp_params_dict = vars(exp_args) if exp_args is not None else {}
+    eval_metrics = {**exp_params_dict, "TN": tn, "FP": fp, "FN": fn, "TP": tp, "FPR": fpr, "TPR": tpr,
+                    "thresholds": thresholds, "auc_score": auc_score}
+
+    # exp_params_dict = vars(exp_args) if exp_args is not None else {}
+    # exp_params_dict = {**exp_params_dict}
+    # eval_metrics = exp_params_dict.update({"TN": tn, "FP": fp, "FN": fn, "TP": tp, "FPR": fpr, "TPR": tpr, "thresholds": thresholds,
+    #      'auc_score': auc_score})
+
+    file_exists = os.path.exists(output_file)
+    f_mode = "a" if file_exists else "a"
+
+    with open(output_file, mode='a', newline="") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            header = list(eval_metrics.keys())
+            writer.writerow(header)
+        writer.writerow(eval_metrics.values())

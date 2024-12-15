@@ -37,14 +37,14 @@ def get_stats(array):
 if __name__ == "__main__":
     exp_models = ["ChebNet"]
     exp_batch_sizes = [24]
-    exp_hidden_channels = [32]
+    exp_hidden_channels = [16]
     exp_lrs = [3e-3]
     exp_wds = [5e-3]
     exp_epochs = [90]
-    k_ords = [2]
+    k_ords = [3]
     num_lins = [1]
-    num_convs = [13]
-    poolings = ["add"]
+    num_convs = [5]
+    poolings = ["max"]
     results = []
 
     demo_run = None
@@ -94,7 +94,8 @@ if __name__ == "__main__":
             f"-> Train mean accuracy = {train_mean_acc:.4f} | Validation mean accuracy = {val_mean_acc:.4f}")
         print(
             f"-> Train max accuracy = {train_max_acc:.4f} | Validation max accuracy = {val_max_acc:.4f}")
-        print("\n=====================================================")
 
         output_file = "predictions.txt"
-        print(f"Predictions saved to {output_file}")
+        print(f"\n\nPredictions saved to {output_file}")
+
+        print("\n=====================================================")

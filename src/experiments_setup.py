@@ -34,6 +34,8 @@ def parse_args(exp_params):
     parser.add_argument('--num_node_features', type=int, help="Number of node features", default=7)
     parser.add_argument('--num_edge_attr', type=int, help="Number of edge attributes", default=4)
 
+    parser.add_argument('--run_mode', type=str, help="exp (Experiment) / eval (Evaluation)", default='eval')
+    parser.add_argument('--env', type=str, help="Local (local) / Remote (remote)", default='local')
     return parser.parse_args()
 
 
@@ -47,17 +49,18 @@ def get_stats(array):
 # ChebNet,13,1,2,add,90,32,48,0.003,0.005 -> Test Loss: 0.5078, Test Acc: 0.8667
 
 if __name__ == "__main__":
-    exp_models = ["ChebNet"]  # ["SAGE", "GCN", "GAT", "ChebNet", "EGC", "GIN"]
-    exp_batch_sizes = [24]  # [24, 48]  # [32,48,64]
-    exp_hidden_channels = [32]  # [16, 32, 64]  # [16, 32,48, 64]  # [24, 48]  # [24, 48, 64]
+    exp_models = ["ChebNet"]  # , "SAGE", "GCN", "GAT", "EGC", "GIN"]
+    exp_batch_sizes = [24, 48]  # [24, 48]  # [24, 48]  # [32,48,64]
+    exp_hidden_channels = [16, 32, 48]  # [32, 64]  # [16, 32, 64]  # [16, 32,48, 64]  # [24, 48]  # [24, 48, 64]
     exp_lrs = [3e-3]  # , 1e-3]  # [5e-4, 1e-3, 5e-3, 1e-2]
     exp_wds = [5e-3]  # [3e-3, 5e-5]
     exp_epochs = [90]  # , 150]  # [125, 200]
-    k_ords = [2]  # [2, 3, 4]
+    k_ords = [2, 3, 4]  # [2, 3, 4]
     num_lins = [1]  # [1, 2]
-    num_convs = [13]  # [3, 5, 7, 9, 11, 13]  # [2, 3, 4, 5]
-    poolings = ["add"]  # , "max"]  # ["add", "mean", "max"]
+    num_convs = [3, 5, 7, 9, 11, 13]  # [3, 5, 7, 9, 11, 13]  # [2, 3, 4, 5]
+    poolings = ["add", "max", ]  # "mean"]  # ["add", "mean", "max"]
     results = []
+
     demo_run = None
 
     params_combinations = list(itertools.product(
@@ -144,5 +147,5 @@ if __name__ == "__main__":
         sleep(1)
 
     df_results = pd.DataFrame(results)
-    df_results.to_csv('../results/FinalChebConvResults2.csv', index=False)
-    print("Experiments results saved to results/FinalChebConvResults2.csv")
+    df_results.to_csv('../results/FinalChebConvResultsLast.csv', index=False)
+    print("Experiments results saved to results/FinalChebConvResultsLast.csv")
