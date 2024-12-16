@@ -10,5 +10,5 @@
 ### Date
 **November 2024**
 
-![](img/models.png)
+
 ![](img/metrics.png)
